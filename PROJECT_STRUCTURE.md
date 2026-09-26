@@ -9,29 +9,42 @@ Este documento describe la organización arquitectónica, distribución de paque
 ```
 SecurOps/
 ├── pom.xml                                                         # Gestión de dependencias Maven y plugins de compilación
+├── Dockerfile                                                      # Contenedorización multi-etapa (build Maven + JRE 17 Alpine)
+├── docker-compose.yml                                              # Orquestación de SecurOps, PostgreSQL 16 y RabbitMQ
 ├── PROJECT_STRUCTURE.md                                            # Catálogo exhaustivo de arquitectura y archivos
 ├── README.md                                                       # Presentación oficial del proyecto para GitHub
+├── TECHNICAL_GUIDE.md                                              # Guía técnica, seeds, resultados en vivo y Swagger
 └── src/
     ├── main/
     │   ├── java/com/securops/
     │   │   ├── SecurOpsApplication.java                            # Clase principal de arranque Spring Boot (@EnableScheduling)
+    │   │   ├── core/
+    │   │   │   └── init/
+    │   │   │       └── DataInitializer.java                       # Precarga automática de turnos, esquemas, sedes y guardas
     │   │   └── modules/
     │   │       ├── security/                                       # Módulo de Autenticación, RBAC y Seguridad JWT
     │   │       │   ├── config/
     │   │       │   │   └── SecurityConfig.java                     # Filtros de seguridad, endpoints públicos/privados, BCrypt
+    │   │       │   ├── controller/
+    │   │       │   │   └── AuthController.java                     # Endpoints /auth/login y /auth/register
+    │   │       │   ├── dto/
+    │   │       │   │   └── AuthDtos.java                           # DTOs de login y registro
     │   │       │   ├── entity/
     │   │       │   │   ├── RoleType.java                           # Enum: ROLE_ADMIN, ROLE_SUPERVISOR, ROLE_OPERATOR, ROLE_GUARD
     │   │       │   │   └── User.java                               # Entidad JPA: Cuenta de usuario y roles
-    │   │       │   └── jwt/
-    │   │       │       ├── JwtAuthenticationFilter.java            # Filtro OncePerRequest para interceptar tokens Bearer
-    │   │       │       └── JwtTokenProvider.java                   # Emisión, firma HMAC-SHA y validación de tokens JWT
+    │   │       │   ├── jwt/
+    │   │       │   │   ├── JwtAuthenticationFilter.java            # Filtro OncePerRequest con extracción dinámica de autoridades
+    │   │       │   │   └── JwtTokenProvider.java                   # Emisión, firma HMAC-SHA y validación de tokens JWT
+    │   │       │   └── repository/
+    │   │       │       └── UserRepository.java                     # Búsquedas por username y validaciones de existencia
     │   │       ├── posts/                                          # Módulo de Puestos de Control y Sedes Operativas
     │   │       │   ├── entity/
     │   │       │   │   ├── SecurityPost.java                       # Entidad JPA: Puestos físicos, coordenadas GPS y geocercas
     │   │       │   │   ├── ServiceCoverageType.java                # Enum: Coberturas 24/7, 12h diurno, 12h nocturno, 8h 5x2, 8h 3x3
     │   │       │   │   └── Site.java                               # Entidad JPA: Sedes físicas, sucursales y códigos de nodo
     │   │       │   └── repository/
-    │   │       │       └── SecurityPostRepository.java             # Consultas JPA para búsqueda por código, sede y estado activo
+    │   │       │       ├── SecurityPostRepository.java             # Consultas JPA para búsqueda por código, sede y estado activo
+    │   │       │       └── SiteRepository.java                     # Búsqueda de sedes por código de nodo
     │   │       ├── guards/                                         # Módulo de Guardas de Seguridad y Scoring
     │   │       │   ├── controller/
     │   │       │   │   └── GuardAnalyticsController.java           # Endpoint REST para analítica y scoring (/api/v1/guards)
@@ -71,21 +84,31 @@ SecurOps/
     │   │       │   └── service/
     │   │       │       └── ShiftManagementService.java             # Lógica de negocio: generación de mallas y asignación de relevos
     │   │       ├── attendance/                                     # Módulo de Marcaciones, Asistencia y Biometría
+    │   │       │   ├── controller/
+    │   │       │   │   └── AttendanceController.java               # Endpoints REST para check-in y check-out
     │   │       │   ├── entity/
     │   │       │   │   ├── AttendanceRecord.java                   # Entidad JPA: Reloj checador, retardo en minutos y GPS
     │   │       │   │   ├── AttendanceStatus.java                   # Enum: ON_TIME, DELAYED, EARLY_LEAVE, ABSENT, JUSTIFIED_ABSENCE
     │   │       │   │   └── VerificationMethod.java                 # Enum: BIOMETRIC_DEVICE, MOBILE_APP_GPS, CONTROL_ROOM_CALL
-    │   │       │   └── repository/
-    │   │       │       └── AttendanceRecordRepository.java         # Consultas de asistencias y cálculo de demoras
+    │   │       │   ├── repository/
+    │   │       │   │   └── AttendanceRecordRepository.java         # Consultas de asistencias y cálculo de demoras
+    │   │       │   └── service/
+    │   │       │       └── AttendanceService.java                  # Validación de geocercas con fórmula de Haversine y outbox
     │   │       ├── monitoring/                                     # Módulo de Central de Monitoreo, Rondas y Novedades
+    │   │       │   ├── controller/
+    │   │       │   │   └── MonitoringController.java               # Endpoints REST: Registro de llamadas y reporte de novedades
+    │   │       │   ├── dto/
+    │   │       │   │   └── MonitoringDtos.java                     # DTOs de llamada de control y reporte de novedad
     │   │       │   ├── entity/
     │   │       │   │   ├── CallStatus.java                         # Enum: ON_TIME, DELAYED, MISSED, ALERT_RAISED
     │   │       │   │   ├── ControlCallLog.java                     # Entidad JPA: Llamadas de ronda y minutas de control
     │   │       │   │   ├── NoveltyRecord.java                      # Entidad JPA: Novedades operativas, incapacidades y sanciones
     │   │       │   │   └── NoveltyType.java                        # Enum: MEDICAL_LEAVE, UNJUSTIFIED_ABSENCE, EMERGENCY_RELIEF, etc.
-    │   │       │   └── repository/
-    │   │       │       ├── ControlCallLogRepository.java           # Auditoría de llamadas de verificación por puesto y guarda
-    │   │       │       └── NoveltyRecordRepository.java            # Consulta de novedades que impactan nómina o scoring
+    │   │       │   ├── repository/
+    │   │       │   │   ├── ControlCallLogRepository.java           # Auditoría de llamadas de verificación por puesto y guarda
+    │   │       │   │   └── NoveltyRecordRepository.java            # Consulta de novedades que impactan nómina o scoring
+    │   │       │   └── service/
+    │   │       │       └── MonitoringService.java                  # Lógica de registro de minutas y marcado de puestos descubiertos
     │   │       ├── payroll/                                        # Módulo de Nómina y Liquidación Operativa
     │   │       │   ├── controller/
     │   │       │   │   └── PayrollController.java                  # Endpoint REST para liquidar nómina (/api/v1/payroll)
@@ -102,7 +125,7 @@ SecurOps/
     │   │           │   └── SyncController.java                     # Endpoint REST para ingesta de lotes (/api/v1/sync/ingest)
     │   │           ├── entity/
     │   │           │   ├── IdempotencyStore.java                   # Entidad JPA: Registro de tokens UUID para evitar duplicados
-    │   │           ├── SyncEventOutbox.java                    # Entidad JPA: Cola transaccional de eventos local (Transactional Outbox)
+    │   │           │   ├── SyncEventOutbox.java                    # Entidad JPA: Cola transaccional de eventos local (Transactional Outbox)
     │   │           │   └── SyncStatus.java                         # Enum: PENDING, IN_FLIGHT, SYNCED, FAILED, CONFLICT_RESOLVED
     │   │           ├── repository/
     │   │           │   ├── IdempotencyStoreRepository.java         # Validación de duplicados por clave de idempotencia
@@ -111,6 +134,8 @@ SecurOps/
     │   │               └── MultisiteSyncService.java               # Worker en segundo plano (@Scheduled) y despachador tolerante a fallos
     │   └── resources/
     │       ├── application.yml                                     # Configuración de puerto, base de datos H2/PostgreSQL y claves JWT
+    │       ├── static/
+    │       │   └── index.html                                      # Dashboard Web interactivo (Malla gráfica, GPS, Novedades, Nómina)
     │       └── db/migration/
     │           └── V1__init_schema.sql                             # DDL relacional con índices, llaves foráneas y restricciones
     └── test/
@@ -147,4 +172,4 @@ SecurOps/
 
 ### 6. Capa de Seguridad y RBAC (`security/`)
 - **Spring Security 6** con arquitectura **Stateless**.
-- **Filtro JWT**: Valida la firma criptográfica HMAC-SHA de cada petición entrante y extrae roles para la autorización basada en anotaciones (`@PreAuthorize`).
+- **Filtro JWT**: Valida la firma criptográfica HMAC-SHA de cada petición entrante y extrae roles dinámicos para la autorización basada en roles (`ROLE_ADMIN`, `ROLE_SUPERVISOR`, `ROLE_OPERATOR`, `ROLE_GUARD`).

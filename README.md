@@ -158,31 +158,35 @@ $$\text{Score} = (0.40 \times \text{Asistencia}\%) + (0.25 \times \text{Puntuali
 ## 🚀 Puesta en Marcha Rápida
 
 ### Requisitos Previos
-- **Java Development Kit (JDK) 21** o superior instalado.
-- **Maven 3.9+** (o ejecutar con el wrapper).
+- **Java Development Kit (JDK) 17 LTS** o superior.
+- **Git** para clonar el repositorio.
 
-### 1. Clonar el Repositorio
+### Opción A: Ejecución Local con Maven Wrapper (Recomendado)
 ```bash
+# 1. Clonar el repositorio
 git clone https://github.com/tu-usuario/SecurOps.git
 cd SecurOps
+
+# 2. Compilar y ejecutar pruebas unitarias
+./mvnw clean test        # En Linux / Mac
+.\mvnw.cmd clean test    # En Windows PowerShell
+
+# 3. Iniciar la aplicación Spring Boot
+./mvnw spring-boot:run        # En Linux / Mac
+.\mvnw.cmd spring-boot:run    # En Windows PowerShell
 ```
 
-### 2. Compilar y Ejecutar Pruebas
+### Opción B: Despliegue con Docker Compose (PostgreSQL 16 + RabbitMQ + App)
 ```bash
-mvn clean test
+docker-compose up -d --build
 ```
+Esto levantará el contenedor de base de datos PostgreSQL, el broker RabbitMQ y la aplicación Spring Boot de manera autónoma.
 
-### 3. Iniciar la Aplicación
-```bash
-mvn spring-boot:run
-```
-La aplicación iniciará en `http://localhost:8080/api/v1`.
-
-### 4. Consola de Base de Datos H2 (Desarrollo)
-- **URL**: `http://localhost:8080/api/v1/h2-console`
-- **JDBC URL**: `jdbc:h2:mem:securopsdb`
-- **Usuario**: `sa`
-- **Contraseña**: *(vacío)*
+### 🌐 Accesos Directos a la Plataforma
+- **Dashboard Web Interactivo**: [`http://localhost:8080/api/v1/index.html`](http://localhost:8080/api/v1/index.html)
+- **Consola Swagger UI (OpenAPI)**: [`http://localhost:8080/api/v1/swagger-ui.html`](http://localhost:8080/api/v1/swagger-ui.html)
+- **Consola de Base de Datos H2**: [`http://localhost:8080/api/v1/h2-console`](http://localhost:8080/api/v1/h2-console) (JDBC URL: `jdbc:h2:mem:securopsdb`, Usuario: `sa`, Contraseña: en blanco)
+- **Consola RabbitMQ Management**: [`http://localhost:15672`](http://localhost:15672) (Usuario: `securops_mq`, Pass: `mq_secure_password_2026`)
 
 ---
 
@@ -212,6 +216,17 @@ La aplicación iniciará en `http://localhost:8080/api/v1`.
 
 ### 4. Analítica de Guardas (`/guards`)
 - `GET /api/v1/guards/{guardId}/metrics?startDate=2026-09-01&endDate=2026-09-30`: Retorna el scoring, puntualidad, asistencia y tier del guarda.
+
+### 5. Central de Monitoreo y Novedades (`/monitoring`)
+- `POST /api/v1/monitoring/calls/log`: Registra llamadas de verificación de ronda y minutas de control en puestos.
+- `POST /api/v1/monitoring/novelties`: Reporta novedades operativas (incapacidad, abandono, armamento) y marca automáticamente los puestos afectados como `UNCOVERED`.
+- `GET /api/v1/monitoring/calls/post/{postId}`: Consulta el historial de llamadas de un puesto de control.
+- `GET /api/v1/monitoring/novelties/guard/{guardId}`: Consulta las novedades reportadas por guarda.
+
+### 6. Asistencia y Marcación Biométrica con Geocerca (`/attendance`)
+- `POST /api/v1/attendance/check-in`: Marcación de entrada con cálculo Haversine de geocerca y minutos de retardo.
+- `POST /api/v1/attendance/check-out`: Marcación de salida y cómputo de horas laboradas.
+- `GET /api/v1/attendance/guard/{guardId}`: Historial de marcaciones por fecha.
 
 ---
 

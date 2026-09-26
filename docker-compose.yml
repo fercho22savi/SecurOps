@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # 1. BASE DE DATOS CENTRALIZADA POSTGRESQL 16
+  securops-db:
+    image: postgres:16-alpine
+    container_name: securops-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: securops_db
+      POSTGRES_USER: securops_user
+      POSTGRES_PASSWORD: securops_secure_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/main/resources/db/migration/V1__init_schema.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - securops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U securops_user -d securops_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. BROKER DE MENSAJERÍA PARA SINCRONIZACIÓN MULTISITIO
+  securops-rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: securops-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: securops_mq
+      RABBITMQ_DEFAULT_PASS: mq_secure_password_2026
+    ports:
+      - "5672:5672"    # Puerto AMQP
+      - "15672:15672"  # Consola Web de Administración RabbitMQ
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - securops-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # 3. APLICACIÓN CORE SPRING BOOT
+  securops-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: securops-app
+    restart: unless-stopped
+    depends_on:
+      securops-db:
+        condition: service_healthy
+      securops-rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://securops-db:5432/securops_db
+      SPRING_DATASOURCE_USERNAME: securops_user
+      SPRING_DATASOURCE_PASSWORD: securops_secure_password_2026
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      SECUROPS_SYNC_IS_CENTRAL: "true"
+      SECUROPS_SYNC_NODE_ID: "CENTRAL-HQ-CLOUD"
+    ports:
+      - "8080:8080"
+    networks:
+      - securops-network
+
+volumes:
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  securops-network:
+    driver: bridge
