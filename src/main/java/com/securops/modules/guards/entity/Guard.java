@@ -61,6 +61,16 @@ public class Guard {
     @JoinColumn(name = "user_id", unique = true)
     private User userAccount;
 
+    @Column(name = "deactivation_reason", length = 300)
+    private String deactivationReason; // Motivo de retiro para auditoría histórica
+
+    @Column(name = "deactivation_date")
+    private LocalDate deactivationDate; // Fecha de retiro
+
+    @Column(name = "created_at")
+    @Builder.Default
+    private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+
     public String getFullName() {
         return firstName + " " + lastName;
     }
