@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecurOps - Centro de Operaciones y Mallas de Turnos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 2px solid #2563eb; color: #1d4ed8; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- TOPBAR -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/80 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 font-black text-xl text-white">
+                    🛡️
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        SecurOps <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">Enterprise v1.0</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Security Operations, Workforce & Multisite Sync</p>
+                </div>
+            </div>
+
+            <!-- STATUS & LINKS -->
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 text-xs bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-300 font-medium" id="authStatusText">Conectando...</span>
+                </div>
+                <a href="/api/v1/swagger-ui.html" target="_blank" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition">
+                    Swagger UI ↗
+                </a>
+                <a href="/api/v1/h2-console" target="_blank" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition">
+                    H2 DB ↗
+                </a>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 text-sm">
+            <button onclick="switchTab('tab-mesh')" id="nav-tab-mesh" class="py-3 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium tab-active transition">
+                🗓️ Malla de Turnos
+            </button>
+            <button onclick="switchTab('tab-attendance')" id="nav-tab-attendance" class="py-3 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium transition">
+                ⏱️ Marcación GPS
+            </button>
+            <button onclick="switchTab('tab-monitoring')" id="nav-tab-monitoring" class="py-3 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium transition">
+                🚨 Monitoreo & Novedades
+            </button>
+            <button onclick="switchTab('tab-payroll')" id="nav-tab-payroll" class="py-3 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium transition">
+                💰 Nómina & Scoring
+            </button>
+        </nav>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+        <!-- ================= TAB 1: MALLA DE TURNOS ================= -->
+        <section id="tab-mesh" class="space-y-6">
+            <!-- Controls Card -->
+            <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 shadow-xl flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">PUESTO DE CONTROL</label>
+                        <select id="meshPostSelect" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="1">Puesto Principal Acceso Vehicular (24/7)</option>
+                            <option value="2">Recepción y Lobby Edificio A (12h Diurno)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">ESQUEMA DE ROTACIÓN</label>
+                        <select id="meshSchemeSelect" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="1">2x2x2 (12 Horas - 2D, 2N, 2L)</option>
+                            <option value="2">3x3 (12 Horas - 3D, 3N, 3L)</option>
+                            <option value="4">6x1 (8 Horas - 6 Lab, 1 Libre)</option>
+                            <option value="5">5x2 (8 Horas - Lun a Vie)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">MES Y AÑO</label>
+                        <div class="flex space-x-2">
+                            <select id="meshMonthSelect" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="10" selected>Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                            <input type="number" id="meshYearInput" value="2026" class="w-20 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 text-center">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button onclick="generateMesh()" id="btnGenerateMesh" class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2">
+                        <span>⚡ Generar Malla Automática</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary KPI Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="meshKpis">
+                <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-slate-400 font-semibold">TOTAL TURNOS MALLA</div>
+                    <div class="text-2xl font-bold text-white mt-1" id="kpiTotalSchedules">--</div>
+                </div>
+                <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-slate-400 font-semibold">TURNOS TRABAJADOS</div>
+                    <div class="text-2xl font-bold text-emerald-400 mt-1" id="kpiWorkingShifts">--</div>
+                </div>
+                <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-slate-400 font-semibold">DÍAS LIBRES / DESCANSO</div>
+                    <div class="text-2xl font-bold text-indigo-400 mt-1" id="kpiRestDays">--</div>
+                </div>
+                <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-slate-400 font-semibold">PUESTOS DESCUBIERTOS</div>
+                    <div class="text-2xl font-bold text-rose-400 mt-1" id="kpiUncovered">0</div>
+                </div>
+            </div>
+
+            <!-- Matrix Calendar Grid -->
+            <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 shadow-xl overflow-x-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        📅 Visualizador de Malla Mensual
+                        <span class="text-xs font-normal text-slate-400" id="matrixSubtitle"></span>
+                    </h2>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500"></span> Diurno 12h (D12)</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-indigo-500"></span> Nocturno 12h (N12)</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-600"></span> Libre (OFF)</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-500 animate-pulse"></span> Descubierto</span>
+                    </div>
+                </div>
+
+                <div id="meshTableContainer" class="overflow-x-auto">
+                    <p class="text-slate-400 text-sm py-8 text-center">Presiona "Generar Malla Automática" para calcular y visualizar el cronograma del mes.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: MARCACIÓN GPS ================= -->
+        <section id="tab-attendance" class="space-y-6 hidden">
+            <div class="max-w-2xl mx-auto bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-5">
+                <div class="border-b border-slate-700 pb-3">
+                    <h2 class="text-lg font-bold text-white">⏱️ Terminal de Marcación del Guarda</h2>
+                    <p class="text-xs text-slate-400">Verificación biométrica y validación de geocerca por fórmula de Haversine</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">SELECCIONAR GUARDA</label>
+                        <select id="attGuardSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                            <option value="1">Carlos Mendoza Ramos (ID: 1 - CC 1020304050)</option>
+                            <option value="2">Andrés Gómez Quintero (ID: 2 - CC 1030405060)</option>
+                            <option value="3">Javier Rojas Beltrán (ID: 3 - CC 1040506070)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">LATITUD GPS</label>
+                            <input type="text" id="attLatInput" value="4.6854120" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">LONGITUD GPS</label>
+                            <input type="text" id="attLngInput" value="-74.0532100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="setCoords(4.6854120, -74.0532100)" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition">
+                            🎯 Coordenadas Exactas del Puesto (0m)
+                        </button>
+                        <button onclick="setCoords(4.6890000, -74.0590000)" class="text-xs px-3 py-1.5 rounded-lg bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:bg-rose-600/30 transition">
+                            ⚠️ Coordenadas Lejanas (Fuera de Geocerca: ~700m)
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL DE VERIFICACIÓN</label>
+                        <select id="attMethodSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                            <option value="MOBILE_APP_GPS">App Móvil con Geocerca GPS</option>
+                            <option value="BIOMETRIC_DEVICE">Reloj Biométrico de Huella / Facial</option>
+                            <option value="CONTROL_ROOM_CALL">Llamada a Central de Operaciones</option>
+                        </select>
+                    </div>
+
+                    <button onclick="submitCheckIn()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                        <span>📍 Marcar Entrada (Check-In)</span>
+                    </button>
+                </div>
+
+                <div id="checkInResult" class="hidden p-4 rounded-xl border text-xs space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: MONITOREO & NOVEDADES ================= -->
+        <section id="tab-monitoring" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+            <!-- Box 1: Registrar Llamada de Ronda -->
+            <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-4">
+                <div class="border-b border-slate-700 pb-2">
+                    <h3 class="font-bold text-white text-base">📞 Registrar Llamada de Ronda / Minuta</h3>
+                    <p class="text-xs text-slate-400">Verificación de puesto por el operador de medios tecnológicos</p>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">GUARDA EN PUESTO</label>
+                        <select id="callGuardSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                            <option value="1">Carlos Mendoza Ramos</option>
+                            <option value="2">Andrés Gómez Quintero</option>
+                            <option value="3">Javier Rojas Beltrán</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">ESTADO DE LA LLAMADA</label>
+                        <select id="callStatusSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                            <option value="ON_TIME">✅ A Tiempo (Reporte Normal)</option>
+                            <option value="DELAYED">⚠️ Tardía (Retardo en contestar)</option>
+                            <option value="MISSED">❌ Omitida (No contesta puesto)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">REPORTE / MINUTA DE NOVEDAD</label>
+                        <textarea id="callNoteInput" rows="3" placeholder="Puesto sin novedad, rondas perimetrales cumplidas según protocolo..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200"></textarea>
+                    </div>
+
+                    <button onclick="submitControlCall()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition">
+                        💾 Guardar en Minuta Digital
+                    </button>
+                    <div id="callResultAlert" class="hidden text-xs text-emerald-400 font-medium text-center"></div>
+                </div>
+            </div>
+
+            <!-- Box 2: Reporte de Novedad Laboral -->
+            <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-4">
+                <div class="border-b border-slate-700 pb-2">
+                    <h3 class="font-bold text-white text-base">🚨 Reportar Novedad Laboral / Alerta Relevo</h3>
+                    <p class="text-xs text-slate-400">Marca automáticamente el puesto como DESCUBIERTO</p>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">GUARDA AFECTADO</label>
+                        <select id="novGuardSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                            <option value="1">Carlos Mendoza Ramos</option>
+                            <option value="2">Andrés Gómez Quintero</option>
+                            <option value="3">Javier Rojas Beltrán</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">TIPO DE NOVEDAD</label>
+                        <select id="novTypeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                            <option value="MEDICAL_LEAVE">Incapacidad Médica</option>
+                            <option value="UNJUSTIFIED_ABSENCE">Ausencia no Justificada (Abandono)</option>
+                            <option value="EMERGENCY_RELIEF">Relevo de Emergencia</option>
+                            <option value="SUSPENSION_DISCIPLINARY">Sanción Disciplinaria</option>
+                            <option value="WEAPON_INCIDENT">Novedad con Armamento</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">DESCRIPCIÓN DE LA NOVEDAD</label>
+                        <textarea id="novDescInput" rows="3" placeholder="Guarda reporta urgencia médica a las 05:30 am..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200"></textarea>
+                    </div>
+
+                    <button onclick="submitNovelty()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl transition">
+                        ⚠️ Registrar Novedad y Alertar Supervisor
+                    </button>
+                    <div id="novResultAlert" class="hidden text-xs text-emerald-400 font-medium text-center"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: NÓMINA & SCORING ================= -->
+        <section id="tab-payroll" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+            <!-- Liquidación de Nómina -->
+            <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-4">
+                <div class="border-b border-slate-700 pb-2">
+                    <h3 class="font-bold text-white text-base">💵 Liquidación de Nómina Operativa</h3>
+                    <p class="text-xs text-slate-400">Cálculo de recargos nocturnos, extras y deducciones por ausentismo</p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="calculatePayroll()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded-xl transition">
+                        Calcular Nómina Guarda 1
+                    </button>
+                </div>
+
+                <div id="payrollCard" class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 space-y-2 text-xs">
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Salario Base Mensual:</span>
+                        <span class="font-semibold text-white" id="payBase">$1,600,000.00</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Horas Ordinarias Diurnas:</span>
+                        <span class="font-semibold text-white" id="payRegHours">--</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Recargos Nocturnos (+35%):</span>
+                        <span class="font-semibold text-indigo-400" id="payNightHours">--</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Horas Extras Diurnas (1.25x):</span>
+                        <span class="font-semibold text-emerald-400" id="payOvertimeDay">--</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Horas Extras Nocturnas (1.75x):</span>
+                        <span class="font-semibold text-indigo-400" id="payOvertimeNight">--</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Total Recargos y Extras:</span>
+                        <span class="font-semibold text-emerald-400" id="paySurcharges">--</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 text-sm font-bold text-white border-t border-slate-700 mt-2">
+                        <span>NETO A PAGAR:</span>
+                        <span class="text-emerald-400" id="payNet">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scoring del Guarda -->
+            <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-4">
+                <div class="border-b border-slate-700 pb-2">
+                    <h3 class="font-bold text-white text-base">📈 Scoring y Desempeño del Guarda</h3>
+                    <p class="text-xs text-slate-400">Fórmula ponderada (Asistencia 40%, Puntualidad 25%, Rondas 35%)</p>
+                </div>
+
+                <button onclick="fetchScoring()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded-xl transition">
+                    Actualizar Métricas y KPIs
+                </button>
+
+                <div id="scoringCard" class="bg-slate-900/80 p-5 rounded-xl border border-slate-700 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-slate-400">Guarda Evaluado</div>
+                            <div class="text-base font-bold text-white" id="scoreGuardName">Carlos Mendoza Ramos</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold" id="scoreTier">
+                                EXCELLENT
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Score Bar -->
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span class="text-slate-400">Puntaje Global</span>
+                            <span class="text-white" id="scoreValue">100.00 / 100</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+                            <div id="scoreBar" class="bg-gradient-to-r from-blue-500 to-emerald-400 h-3 rounded-full transition-all duration-500" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown -->
+                    <div class="grid grid-cols-3 gap-2 text-center pt-2">
+                        <div class="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/60">
+                            <div class="text-xs text-slate-400">Asistencia</div>
+                            <div class="text-sm font-bold text-white mt-0.5" id="scoreAtt">100%</div>
+                        </div>
+                        <div class="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/60">
+                            <div class="text-xs text-slate-400">Puntualidad</div>
+                            <div class="text-sm font-bold text-white mt-0.5" id="scorePunct">100%</div>
+                        </div>
+                        <div class="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/60">
+                            <div class="text-xs text-slate-400">Rondas</div>
+                            <div class="text-sm font-bold text-white mt-0.5" id="scoreCalls">100%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+        SecurOps Platform &copy; 2026. Diseñado para Empresas de Seguridad Privada y Vigilancia.
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const API_BASE = '/api/v1';
+        let authToken = null;
+
+        // Auto login on start
+        window.addEventListener('DOMContentLoaded', async () => {
+            await autoLogin();
+        });
+
+        async function autoLogin() {
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    authToken = data.token;
+                    document.getElementById('authStatusText').textContent = 'Admin Autenticado (JWT Activo)';
+                    generateMesh(); // Auto generate mesh preview
+                } else {
+                    document.getElementById('authStatusText').textContent = 'Error Autenticación';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('authStatusText').textContent = 'Servidor Desconectado';
+            }
+        }
+
+        function switchTab(tabId) {
+            ['tab-mesh', 'tab-attendance', 'tab-monitoring', 'tab-payroll'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                document.getElementById('nav-' + id).classList.remove('tab-active');
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById('nav-' + tabId).classList.add('tab-active');
+        }
+
+        function setCoords(lat, lng) {
+            document.getElementById('attLatInput').value = lat;
+            document.getElementById('attLngInput').value = lng;
+        }
+
+        async function generateMesh() {
+            if (!authToken) await autoLogin();
+            const postId = document.getElementById('meshPostSelect').value;
+            const rotationSchemeId = document.getElementById('meshSchemeSelect').value;
+            const month = parseInt(document.getElementById('meshMonthSelect').value);
+            const year = parseInt(document.getElementById('meshYearInput').value);
+
+            document.getElementById('btnGenerateMesh').textContent = 'Generando...';
+
+            try {
+                const res = await fetch(`${API_BASE}/shifts/generate-mesh`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        postId: parseInt(postId),
+                        rotationSchemeId: parseInt(rotationSchemeId),
+                        guardIds: [1, 2, 3],
+                        year: year,
+                        month: month,
+                        cycleAnchorDate: `${year}-${String(month).padStart(2, '0')}-01`
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('kpiTotalSchedules').textContent = data.totalSchedulesGenerated;
+                    document.getElementById('kpiWorkingShifts').textContent = data.totalWorkingShifts;
+                    document.getElementById('kpiRestDays').textContent = data.totalRestDays;
+                    document.getElementById('kpiUncovered').textContent = data.uncoveredSlotsCount;
+
+                    renderMatrix(data.schedules, month, year);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                document.getElementById('btnGenerateMesh').textContent = '⚡ Generar Malla Automática';
+            }
+        }
+
+        function renderMatrix(schedules, month, year) {
+            const container = document.getElementById('meshTableContainer');
+            if (!schedules || schedules.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 text-sm py-4">No hay turnos para mostrar.</p>';
+                return;
+            }
+
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const guardsMap = new Map();
+
+            schedules.forEach(s => {
+                const gId = s.guard.id;
+                if (!guardsMap.has(gId)) {
+                    guardsMap.set(gId, { name: s.guard.firstName + ' ' + s.guard.lastName, shifts: {} });
+                }
+                const dayNum = parseInt(s.shiftDate.split('-')[2]);
+                guardsMap.get(gId).shifts[dayNum] = {
+                    type: s.shiftDefinition.type,
+                    status: s.status
+                };
+            });
+
+            let html = `
+                <table class="w-full text-center border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-900/80 text-slate-300 border-b border-slate-700">
+                            <th class="py-2.5 px-3 text-left sticky left-0 bg-slate-900 z-10 font-bold min-w-[160px]">GUARDA</th>
+            `;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                html += `<th class="py-2.5 px-1 font-semibold w-8">${d}</th>`;
+            }
+            html += `</tr></thead><tbody>`;
+
+            guardsMap.forEach((guardData, guardId) => {
+                html += `
+                    <tr class="border-b border-slate-800 hover:bg-slate-800/30 transition">
+                        <td class="py-2 px-3 text-left font-semibold text-slate-200 sticky left-0 bg-slate-800/90 z-10 border-r border-slate-700">
+                            ${guardData.name}
+                        </td>
+                `;
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const shift = guardData.shifts[d];
+                    let badge = '';
+                    if (!shift) {
+                        badge = `<span class="text-slate-600">-</span>`;
+                    } else if (shift.status === 'UNCOVERED') {
+                        badge = `<span class="inline-block w-6 py-0.5 rounded bg-rose-500 text-white font-bold" title="Descubierto">!</span>`;
+                    } else if (shift.type === 'DAY_12H') {
+                        badge = `<span class="inline-block w-6 py-0.5 rounded bg-emerald-500 text-white font-bold" title="Diurno 12h">D</span>`;
+                    } else if (shift.type === 'NIGHT_12H') {
+                        badge = `<span class="inline-block w-6 py-0.5 rounded bg-indigo-500 text-white font-bold" title="Nocturno 12h">N</span>`;
+                    } else {
+                        badge = `<span class="inline-block w-6 py-0.5 rounded bg-slate-700 text-slate-400" title="Libre">L</span>`;
+                    }
+                    html += `<td class="py-2 px-1">${badge}</td>`;
+                }
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        async function submitCheckIn() {
+            const guardId = document.getElementById('attGuardSelect').value;
+            const lat = parseFloat(document.getElementById('attLatInput').value);
+            const lng = parseFloat(document.getElementById('attLngInput').value);
+            const method = document.getElementById('attMethodSelect').value;
+
+            const resDiv = document.getElementById('checkInResult');
+            resDiv.className = 'p-4 rounded-xl border text-xs space-y-1 block';
+
+            try {
+                const res = await fetch(`${API_BASE}/attendance/check-in`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        scheduleId: 1,
+                        guardId: parseInt(guardId),
+                        latitude: lat,
+                        longitude: lng,
+                        verificationMethod: method
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    resDiv.className += ' bg-emerald-950/40 border-emerald-600/50 text-emerald-300';
+                    resDiv.innerHTML = `
+                        <div class="font-bold text-sm text-emerald-400">✅ Marcación Exitosa</div>
+                        <div><strong>ID Registro:</strong> ${data.id}</div>
+                        <div><strong>Hora Marcación:</strong> ${data.checkInTime}</div>
+                        <div><strong>Puntualidad:</strong> ${data.status} (Retardo: ${data.delayMinutes}m)</div>
+                        <div><strong>Geocerca Válida:</strong> ${data.isGeofenceValid ? 'SÍ (Dentro del radio permitido)' : 'NO (Alerta fuera de rango)'}</div>
+                    `;
+                } else {
+                    resDiv.className += ' bg-rose-950/40 border-rose-600/50 text-rose-300';
+                    resDiv.innerHTML = `<div class="font-bold text-sm text-rose-400">⚠️ Error en Marcación</div><div>Posiblemente ya se registró la entrada para este turno hoy.</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function submitControlCall() {
+            const guardId = document.getElementById('callGuardSelect').value;
+            const status = document.getElementById('callStatusSelect').value;
+            const note = document.getElementById('callNoteInput').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/monitoring/calls/log`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        postId: 1,
+                        guardId: parseInt(guardId),
+                        status: status,
+                        logMinuteNote: note || 'Reporte de control habitual',
+                        operatorUserId: 1
+                    })
+                });
+                if (res.ok) {
+                    const alert = document.getElementById('callResultAlert');
+                    alert.textContent = '✓ Llamada registrada en la minuta y enviada al outbox multisitio';
+                    alert.classList.remove('hidden');
+                    setTimeout(() => alert.classList.add('hidden'), 3500);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function submitNovelty() {
+            const guardId = document.getElementById('novGuardSelect').value;
+            const type = document.getElementById('novTypeSelect').value;
+            const desc = document.getElementById('novDescInput').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/monitoring/novelties`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        guardId: parseInt(guardId),
+                        postId: 1,
+                        type: type,
+                        startDate: new Date().toISOString(),
+                        endDate: new Date(Date.now() + 86400000 * 2).toISOString(),
+                        impactsPayroll: true,
+                        payrollDiscountHours: 12,
+                        triggersDisciplinaryAction: type === 'UNJUSTIFIED_ABSENCE',
+                        description: desc || 'Novedad operacional reportada',
+                        approvedByUserId: 1
+                    })
+                });
+                if (res.ok) {
+                    const alert = document.getElementById('novResultAlert');
+                    alert.textContent = '✓ Novedad registrada con éxito. Turnos afectados marcados como DESCUBIERTOS.';
+                    alert.classList.remove('hidden');
+                    setTimeout(() => alert.classList.add('hidden'), 4000);
+                    generateMesh(); // Refresh mesh to reflect uncovered state!
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function calculatePayroll() {
+            try {
+                const res = await fetch(`${API_BASE}/payroll/calculate/1/period/1`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('payBase').textContent = `$${parseFloat(data.baseSalaryAmount).toLocaleString()}`;
+                    document.getElementById('payRegHours').textContent = `${data.regularDayHours} hrs`;
+                    document.getElementById('payNightHours').textContent = `${data.nightSurchargeHours} hrs`;
+                    document.getElementById('payOvertimeDay').textContent = `${data.dayOvertimeHours} hrs`;
+                    document.getElementById('payOvertimeNight').textContent = `${data.nightOvertimeHours} hrs`;
+                    document.getElementById('paySurcharges').textContent = `$${parseFloat(data.surchargesAndOvertimeAmount).toLocaleString()}`;
+                    document.getElementById('payNet').textContent = `$${parseFloat(data.netPayableAmount).toLocaleString()}`;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchScoring() {
+            try {
+                const res = await fetch(`${API_BASE}/guards/1/metrics?startDate=2026-10-01&endDate=2026-10-31`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('scoreGuardName').textContent = data.guardName;
+                    document.getElementById('scoreValue').textContent = `${data.overallScore} / 100`;
+                    document.getElementById('scoreBar').style.width = `${data.overallScore}%`;
+                    document.getElementById('scoreTier').textContent = data.performanceTier;
+                    document.getElementById('scoreAtt').textContent = `${data.attendancePercentage}%`;
+                    document.getElementById('scorePunct').textContent = `${data.punctualityPercentage}%`;
+                    document.getElementById('scoreCalls').textContent = `${data.callCompliancePercentage}%`;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
