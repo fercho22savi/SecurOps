@@ -19,6 +19,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
 
 securops:
   jwt:

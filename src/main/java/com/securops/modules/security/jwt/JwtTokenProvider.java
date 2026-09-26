@@ -55,6 +55,21 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    public java.util.List<GrantedAuthority> getAuthoritiesFromJwt(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        String rolesStr = claims.get("roles", String.class);
+        if (rolesStr != null && !rolesStr.trim().isEmpty()) {
+            return java.util.Arrays.stream(rolesStr.split(","))
+                    .map(r -> (GrantedAuthority) new org.springframework.security.core.authority.SimpleGrantedAuthority(r.trim()))
+                    .collect(Collectors.toList());
+        }
+        return java.util.Collections.emptyList();
+    }
+
     public boolean validateToken(String authToken) {
         try {
             Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(authToken);

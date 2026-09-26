@@ -1,5 +1,7 @@
 package com.securops.modules.guards.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.securops.modules.security.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,6 +16,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Guard {
 
     @Id
@@ -53,6 +56,7 @@ public class Guard {
     @Builder.Default
     private BigDecimal performanceScore = new BigDecimal("100.00"); // Scoring 0 - 100
 
+    @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true)
     private User userAccount;
