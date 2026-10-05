@@ -907,9 +907,24 @@
                     }
 
                     renderMatrix(data.schedules, month, year);
+                } else {
+                    const errJson = await res.json().catch(() => null);
+                    const errMsg = (errJson && (errJson.message || errJson.error)) ? (errJson.message || errJson.error) : 'Error interno al procesar la malla.';
+                    document.getElementById('meshTableContainer').innerHTML = `
+                        <div class="p-6 text-center text-rose-400 text-sm">
+                            <p class="font-bold">⚠️ No se pudo generar la malla</p>
+                            <p class="text-xs text-slate-400 mt-1">${errMsg}</p>
+                        </div>
+                    `;
                 }
             } catch (err) {
                 console.error(err);
+                document.getElementById('meshTableContainer').innerHTML = `
+                    <div class="p-6 text-center text-rose-400 text-sm">
+                        <p class="font-bold">⚠️ Error de conexión</p>
+                        <p class="text-xs text-slate-400 mt-1">${err.message}</p>
+                    </div>
+                `;
             } finally {
                 document.getElementById('btnGenerateMesh').textContent = '⚡ Generar Malla Automática';
             }

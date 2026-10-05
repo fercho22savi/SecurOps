@@ -29,6 +29,7 @@ public class ShiftManagementService {
     private final SecurityPostRepository postRepository;
     private final GuardRepository guardRepository;
     private final RotationSchemeRepository rotationSchemeRepository;
+    private final com.securops.modules.attendance.repository.AttendanceRecordRepository attendanceRecordRepository;
 
     @Transactional
     public ShiftMeshGenerationResult generateMonthlyMesh(
@@ -54,12 +55,29 @@ public class ShiftManagementService {
         LocalDate startOfMonth = targetMonth.atDay(1);
         LocalDate endOfMonth = targetMonth.atEndOfMonth();
 
-        // Check if schedules already exist for this post in the month
-        List<ShiftSchedule> existing = scheduleRepository.findBySecurityPostIdAndShiftDateBetween(postId, startOfMonth, endOfMonth);
-        if (!existing.isEmpty()) {
-            log.info("Removing {} existing schedules for post {} in {}", existing.size(), post.getName(), targetMonth);
-            scheduleRepository.deleteAll(existing);
+        // 1. Remove existing schedules for this post in the month
+        List<ShiftSchedule> existingPostSchedules = scheduleRepository.findBySecurityPostIdAndShiftDateBetween(postId, startOfMonth, endOfMonth);
+        if (!existingPostSchedules.isEmpty()) {
+            log.info("Removing {} existing schedules for post {} in {}", existingPostSchedules.size(), post.getName(), targetMonth);
+            for (ShiftSchedule s : existingPostSchedules) {
+                attendanceRecordRepository.findByShiftScheduleId(s.getId()).ifPresent(attendanceRecordRepository::delete);
+            }
+            scheduleRepository.deleteAllInBatch(existingPostSchedules);
         }
+
+        // 2. Remove any existing schedules for the assigned guards in this date range to prevent constraint collisions
+        for (Guard g : guards) {
+            List<ShiftSchedule> guardSchedules = scheduleRepository.findByGuardIdAndShiftDateBetween(g.getId(), startOfMonth, endOfMonth);
+            if (!guardSchedules.isEmpty()) {
+                for (ShiftSchedule s : guardSchedules) {
+                    attendanceRecordRepository.findByShiftScheduleId(s.getId()).ifPresent(attendanceRecordRepository::delete);
+                }
+                scheduleRepository.deleteAllInBatch(guardSchedules);
+            }
+        }
+
+        // Flush all pending deletes to database before generating and inserting new ones
+        scheduleRepository.flush();
 
         ShiftMeshGenerationRequest request = ShiftMeshGenerationRequest.builder()
                 .securityPost(post)
