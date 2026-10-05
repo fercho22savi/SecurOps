@@ -236,6 +236,18 @@ Para ver el desglose técnico y la responsabilidad de cada archivo del proyecto,
 👉 **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)**
 
 ---
+## Captures de pantalla interfaz
+<img width="1581" height="729" alt="1" src="https://github.com/user-attachments/assets/ce940603-cca7-4f38-8be9-ee02de1df5a1" /><br/>
+<img width="1595" height="737" alt="2" src="https://github.com/user-attachments/assets/8345613d-82a0-4cf7-81fe-596007dcd50e" /><br/>
+<img width="1585" height="735" alt="3" src="https://github.com/user-attachments/assets/cc29a541-f3a5-4193-8612-2bf533a9e122" /><br/>
+<img width="1585" height="729" alt="4" src="https://github.com/user-attachments/assets/62adf569-4145-4364-9c0b-f51d57c6e8e2" /><br/>
+<img width="1592" height="733" alt="5" src="https://github.com/user-attachments/assets/01d6d647-5362-4743-bbe7-01572a388183" /><br/>
+
+
+
+
+
+
 
 ## 📄 Licencia
 
