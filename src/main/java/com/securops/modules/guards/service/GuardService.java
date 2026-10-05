@@ -57,6 +57,14 @@ public class GuardService {
                     .build());
         }
 
+        com.securops.modules.guards.entity.GuardOperationalRole role = dto.getOperationalRole() != null 
+                ? dto.getOperationalRole() 
+                : com.securops.modules.guards.entity.GuardOperationalRole.SECURITY_GUARD;
+        BigDecimal salary = dto.getBaseSalary() != null && dto.getBaseSalary().compareTo(BigDecimal.ZERO) > 0
+                ? dto.getBaseSalary()
+                : role.getDefaultBaseSalary();
+        boolean cctv = dto.isCctvCertified() || role == com.securops.modules.guards.entity.GuardOperationalRole.CCTV_TECH_OPERATOR;
+
         Guard guard = Guard.builder()
                 .nationalId(dto.getNationalId())
                 .firstName(dto.getFirstName())
@@ -66,6 +74,9 @@ public class GuardService {
                 .professionalLicense(dto.getProfessionalLicense())
                 .certifiedFirearms(dto.isCertifiedFirearms())
                 .firearmsLicenseExpiry(dto.getFirearmsLicenseExpiry())
+                .operationalRole(role)
+                .baseSalary(salary)
+                .cctvCertified(cctv)
                 .status(GuardStatus.ACTIVE)
                 .performanceScore(new BigDecimal("100.00"))
                 .userAccount(user)
@@ -181,6 +192,11 @@ public class GuardService {
                 .certifiedFirearms(g.isCertifiedFirearms())
                 .firearmsLicenseExpiry(g.getFirearmsLicenseExpiry())
                 .status(g.getStatus())
+                .operationalRole(g.getOperationalRole())
+                .operationalRoleName(g.getOperationalRole() != null ? g.getOperationalRole().getDisplayName() : "Vigilante")
+                .baseSalary(g.getBaseSalary() != null ? g.getBaseSalary() : (g.getOperationalRole() != null ? g.getOperationalRole().getDefaultBaseSalary() : new BigDecimal("1600000.00")))
+                .cctvCertified(g.isCctvCertified())
+                .isLeadershipRole(g.getOperationalRole() != null && g.getOperationalRole().isLeadershipRole())
                 .performanceScore(g.getPerformanceScore())
                 .deactivationReason(g.getDeactivationReason())
                 .deactivationDate(g.getDeactivationDate())

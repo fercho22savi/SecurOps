@@ -53,6 +53,49 @@ public class ShiftMeshGeneratorEngine {
             log.warn(alert);
         }
 
+        // Operational role & specialty validations
+        if (post.isRequiresLeaderGuard()) {
+            boolean hasLeader = guards.stream().anyMatch(g -> 
+                g.getOperationalRole() != null && g.getOperationalRole().isLeadershipRole()
+            );
+            if (!hasLeader) {
+                String roleAlert = String.format(
+                    "ADVERTENCIA DE ROL: El puesto '%s' requiere un Guarda Líder / Supervisor de Puesto, pero ningún integrante asignado cuenta con dicho perfil.",
+                    post.getName()
+                );
+                alerts.add(roleAlert);
+                log.warn(roleAlert);
+            }
+        }
+
+        if (post.isRequiresCoordinator()) {
+            boolean hasCoordinator = guards.stream().anyMatch(g -> 
+                g.getOperationalRole() == com.securops.modules.guards.entity.GuardOperationalRole.POST_COORDINATOR
+            );
+            if (!hasCoordinator) {
+                String roleAlert = String.format(
+                    "ADVERTENCIA DE ROL: El puesto '%s' requiere un Coordinador de Puesto para gestión de alto impacto, pero no hay un coordinador asignado.",
+                    post.getName()
+                );
+                alerts.add(roleAlert);
+                log.warn(roleAlert);
+            }
+        }
+
+        if (post.isRequiresCctvOperator()) {
+            boolean hasCctv = guards.stream().anyMatch(g -> 
+                g.isCctvCertified() || (g.getOperationalRole() != null && g.getOperationalRole().isCctvOperator())
+            );
+            if (!hasCctv) {
+                String roleAlert = String.format(
+                    "ADVERTENCIA DE MEDIOS TECNOLÓGICOS: El puesto '%s' opera consolas CCTV y requiere un Operador de Medios Tecnológicos certificado.",
+                    post.getName()
+                );
+                alerts.add(roleAlert);
+                log.warn(roleAlert);
+            }
+        }
+
         LocalDate startDate = request.getTargetMonth().atDay(1);
         LocalDate endDate = request.getTargetMonth().atEndOfMonth();
         LocalDate anchorDate = request.getCycleAnchorDate() != null ? request.getCycleAnchorDate() : startDate;

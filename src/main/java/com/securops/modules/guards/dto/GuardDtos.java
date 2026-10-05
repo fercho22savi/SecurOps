@@ -25,6 +25,9 @@ public class GuardDtos {
         private String professionalLicense;
         private boolean certifiedFirearms;
         private LocalDate firearmsLicenseExpiry;
+        private com.securops.modules.guards.entity.GuardOperationalRole operationalRole;
+        private BigDecimal baseSalary;
+        private boolean cctvCertified;
         private String username;
         private String password;
     }
@@ -53,6 +56,11 @@ public class GuardDtos {
         private boolean certifiedFirearms;
         private LocalDate firearmsLicenseExpiry;
         private GuardStatus status;
+        private com.securops.modules.guards.entity.GuardOperationalRole operationalRole;
+        private String operationalRoleName;
+        private BigDecimal baseSalary;
+        private boolean cctvCertified;
+        private boolean isLeadershipRole;
         private BigDecimal performanceScore;
         private String deactivationReason;
         private LocalDate deactivationDate;

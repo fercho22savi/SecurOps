@@ -38,6 +38,18 @@ public class SecurityPost {
     @Builder.Default
     private boolean requiresFirearm = false;
 
+    @Column(name = "requires_leader_guard", nullable = false)
+    @Builder.Default
+    private boolean requiresLeaderGuard = false;
+
+    @Column(name = "requires_coordinator", nullable = false)
+    @Builder.Default
+    private boolean requiresCoordinator = false;
+
+    @Column(name = "requires_cctv_operator", nullable = false)
+    @Builder.Default
+    private boolean requiresCctvOperator = false;
+
     @Column(length = 50)
     private String weaponSerialNumber;
 

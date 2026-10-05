@@ -52,6 +52,19 @@ public class Guard {
     @Builder.Default
     private GuardStatus status = GuardStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "operational_role", nullable = false, length = 35)
+    @Builder.Default
+    private GuardOperationalRole operationalRole = GuardOperationalRole.SECURITY_GUARD;
+
+    @Column(name = "base_salary", precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal baseSalary = new BigDecimal("1600000.00");
+
+    @Column(name = "cctv_certified")
+    @Builder.Default
+    private boolean cctvCertified = false;
+
     @Column(precision = 5, scale = 2)
     @Builder.Default
     private BigDecimal performanceScore = new BigDecimal("100.00"); // Scoring 0 - 100

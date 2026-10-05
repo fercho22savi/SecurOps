@@ -132,8 +132,12 @@ public class PayrollCalculatorService {
             }
         }
 
-        // Monetary calculation
-        BigDecimal hourlyRate = DEFAULT_BASE_SALARY.divide(STANDARD_MONTHLY_HOURS, 4, RoundingMode.HALF_UP);
+        // Monetary calculation based on guard's operational role and personalized base salary
+        BigDecimal guardBaseSalary = (guard.getBaseSalary() != null && guard.getBaseSalary().compareTo(BigDecimal.ZERO) > 0)
+                ? guard.getBaseSalary()
+                : (guard.getOperationalRole() != null ? guard.getOperationalRole().getDefaultBaseSalary() : DEFAULT_BASE_SALARY);
+
+        BigDecimal hourlyRate = guardBaseSalary.divide(STANDARD_MONTHLY_HOURS, 4, RoundingMode.HALF_UP);
 
         BigDecimal surchargesAmount = BigDecimal.ZERO
                 .add(totalNightSurcharge.multiply(hourlyRate).multiply(SURCHARGE_NIGHT_FACTOR))
@@ -145,7 +149,7 @@ public class PayrollCalculatorService {
                 .add(totalSundayNightOvertime.multiply(hourlyRate).multiply(SUNDAY_OVERTIME_NIGHT_FACTOR));
 
         BigDecimal deductionsAmount = totalDiscountHours.multiply(hourlyRate);
-        BigDecimal netPayable = DEFAULT_BASE_SALARY.add(surchargesAmount).subtract(deductionsAmount);
+        BigDecimal netPayable = guardBaseSalary.add(surchargesAmount).subtract(deductionsAmount);
 
         PayrollSettlement settlement = settlementRepository.findByGuardIdAndPayrollPeriodId(guardId, periodId)
                 .orElse(PayrollSettlement.builder()
@@ -163,7 +167,7 @@ public class PayrollCalculatorService {
         settlement.setSundayHolidayNightOvertimeHours(totalSundayNightOvertime);
         settlement.setDeductedAbsenceHours(totalDiscountHours);
 
-        settlement.setBaseSalaryAmount(DEFAULT_BASE_SALARY);
+        settlement.setBaseSalaryAmount(guardBaseSalary);
         settlement.setSurchargesAndOvertimeAmount(surchargesAmount.setScale(2, RoundingMode.HALF_UP));
         settlement.setDeductionsAmount(deductionsAmount.setScale(2, RoundingMode.HALF_UP));
         settlement.setNetPayableAmount(netPayable.setScale(2, RoundingMode.HALF_UP));

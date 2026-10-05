@@ -204,6 +204,8 @@ public class DataInitializer implements CommandLineRunner {
                 .site(site)
                 .coverageType(ServiceCoverageType.CONTINUOUS_24_7)
                 .requiresFirearm(true)
+                .requiresLeaderGuard(true)
+                .requiresCctvOperator(true)
                 .weaponSerialNumber("REV-INDUMIL-77821")
                 .latitude(new BigDecimal("4.6854120"))
                 .longitude(new BigDecimal("-74.0532100"))
@@ -217,6 +219,9 @@ public class DataInitializer implements CommandLineRunner {
                 .site(site)
                 .coverageType(ServiceCoverageType.DAYTIME_12H)
                 .requiresFirearm(false)
+                .requiresLeaderGuard(false)
+                .requiresCoordinator(false)
+                .requiresCctvOperator(false)
                 .latitude(new BigDecimal("4.6855000"))
                 .longitude(new BigDecimal("-74.0531000"))
                 .geofenceRadiusMeters(30)
@@ -225,12 +230,22 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("✓ Site and 2 Security Posts created (Puesto 24/7 ID: {}, Puesto Lobby ID: {}).", post247.getId(), postLobby.getId());
 
-        // 5. Guards Squad (3 guards for 2x2x2 coverage)
-        Guard guard1 = createGuard("1020304050", "Carlos", "Mendoza Ramos", "VIG-2024-001", "guarda1");
-        Guard guard2 = createGuard("1030405060", "Andrés", "Gómez Quintero", "VIG-2024-002", "guarda2");
-        Guard guard3 = createGuard("1040506070", "Javier", "Rojas Beltrán", "VIG-2024-003", "guarda3");
+        // 5. Guards Squad with specialized roles (Guarda Líder, Operador CCTV, Coordinador, Vigilante Estándar)
+        Guard guard1 = createGuard("1020304050", "Carlos", "Mendoza Ramos", "VIG-2024-001", "guarda1",
+                com.securops.modules.guards.entity.GuardOperationalRole.POST_LEADER_SUPERVISOR,
+                new BigDecimal("1900000.00"), false);
+        Guard guard2 = createGuard("1030405060", "Andrés", "Gómez Quintero", "VIG-2024-002", "guarda2",
+                com.securops.modules.guards.entity.GuardOperationalRole.CCTV_TECH_OPERATOR,
+                new BigDecimal("1850000.00"), true);
+        Guard guard3 = createGuard("1040506070", "Javier", "Rojas Beltrán", "VIG-2024-003", "guarda3",
+                com.securops.modules.guards.entity.GuardOperationalRole.SECURITY_GUARD,
+                new BigDecimal("1600000.00"), false);
+        Guard guard4 = createGuard("1050607080", "Mauricio", "Delgado Silva", "VIG-2024-004", "coordinador1",
+                com.securops.modules.guards.entity.GuardOperationalRole.POST_COORDINATOR,
+                new BigDecimal("2400000.00"), false);
 
-        log.info("✓ 3 Active Guards created (IDs: {}, {}, {}).", guard1.getId(), guard2.getId(), guard3.getId());
+        log.info("✓ 4 Active Guards seeded with specialized roles (Líder: {}, OMT/CCTV: {}, Vigilante: {}, Coordinador: {}).",
+                guard1.getId(), guard2.getId(), guard3.getId(), guard4.getId());
 
         // 6. Current Payroll Period
         LocalDate now = LocalDate.now();
@@ -249,7 +264,8 @@ public class DataInitializer implements CommandLineRunner {
         log.info("🎉 SecurOps Initialization Completed successfully!");
     }
 
-    private Guard createGuard(String nationalId, String firstName, String lastName, String license, String username) {
+    private Guard createGuard(String nationalId, String firstName, String lastName, String license, String username,
+                              com.securops.modules.guards.entity.GuardOperationalRole role, BigDecimal salary, boolean cctv) {
         User user = userRepository.save(User.builder()
                 .username(username)
                 .password(passwordEncoder.encode(username + "123"))
@@ -268,6 +284,9 @@ public class DataInitializer implements CommandLineRunner {
                 .professionalLicense(license)
                 .certifiedFirearms(true)
                 .firearmsLicenseExpiry(LocalDate.now().plusYears(1))
+                .operationalRole(role)
+                .baseSalary(salary)
+                .cctvCertified(cctv)
                 .status(GuardStatus.ACTIVE)
                 .performanceScore(new BigDecimal("100.00"))
                 .userAccount(user)
